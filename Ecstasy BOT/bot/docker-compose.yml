@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: ecstasy_bot_db
+    environment:
+      POSTGRES_DB: ecstasy_bot
+      POSTGRES_USER: bot_user
+      POSTGRES_PASSWORD: EcstasyBot2024!
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - bot_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bot_user -d ecstasy_bot"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Administração do PostgreSQL (opcional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ecstasy_bot_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@ecstasybot.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - bot_network
+
+  # Bot Discord (comentado para desenvolvimento local)
+  # bot:
+  #   build: 
+  #     context: ./dc
+  #     dockerfile: Dockerfile
+  #   container_name: ecstasy_bot
+  #   environment:
+  #     - DATABASE_URL=postgresql://bot_user:EcstasyBot2024!@postgres:5432/ecstasy_bot
+  #     - NODE_ENV=production
+  #   env_file:
+  #     - ./dc/.env
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   networks:
+  #     - bot_network
+  #   ports:
+  #     - "3001:3001"
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  bot_network:
+    driver: bridge
